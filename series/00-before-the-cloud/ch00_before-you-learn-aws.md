@@ -264,20 +264,45 @@ And that's the foundation for everything we're going to learn in this series.
 
 This was Chapter 0. The origin story.
 
-## 🗺️ Where Are We Headed?
-
-This was Chapter 0. The origin story.
-
-Here's how the full journey looks:
+Here's the full journey ahead:
 
 **Ch 00** — ✅ Before You Learn AWS *(you are here)*
+
 **Ch 01** — The World Before AWS: Computers, Servers & The Internet
-**Ch 02** — Welcome to AWS: What It Is and How It's Organised
-**Ch 03** — Your First AWS Service: EC2
-**Ch 04** — Storage in the Cloud: S3
-**Ch 05** — Who Can Do What: IAM
-**Ch 06** — Networking on AWS: VPC
-**Ch 07** — and the journey continues...
+
+**Ch 02** — Virtualization & Cloud Models: The Missing Bridge
+
+**Ch 03** — Welcome to AWS: Infrastructure, Console & Free Tier
+
+**Ch 04** — IAM: The Gatekeeper of AWS
+
+**Ch 05** — EC2: Your First Server in the Cloud
+
+**Ch 06** — EBS, AMI & Auto Scaling: The Complete Compute Picture
+
+**Ch 07** — AWS CLI: Stop Clicking, Start Typing
+
+**Ch 08** — S3: Store Anything, Forever
+
+**Ch 09** — Databases on AWS: RDS & DynamoDB
+
+**Ch 10** — Serverless: Lambda, SNS & SQS
+
+**Ch 11** — Monitoring & Secrets: CloudWatch + Secrets Manager
+
+**Ch 12** — Networking: Route 53, CloudFront & VPC
+
+**Ch 13** — Infrastructure as Code: CloudFormation & Terraform
+
+**Ch 14** — Containers: ECS & EKS
+
+**Ch 15** — Billing & Pricing: Never Get a Surprise Bill
+
+**Ch 16** — Capstone: Build a Full Stack App on AWS
+
+**Ch 17** — AWS vs Azure vs GCP: An Honest Comparison
+
+**Ch 18** — What's Next: The AWS Certifications Roadmap
 
 Two chapters of context. Then pure AWS — every single post.
 
@@ -295,7 +320,7 @@ It's about **why they broke** — and why that brokenness made AWS inevitable.
 
 That shift in perspective is what makes every AWS service *click* instead of just being another thing to memorise.
 
-👉 **[Chapter 1: The World Before AWS → (Read it here)](LINK)**
+👉 **[Chapter 1: The World Before AWS → (Read it here)](https://dev.to/)**
 
 ---
 

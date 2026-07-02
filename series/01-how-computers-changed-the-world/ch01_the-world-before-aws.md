@@ -207,15 +207,46 @@ And starting in 2006, the three problems that had broken the old world started t
 
 Chapter 1 is done. The painful backstory is behind us.
 
-Here's where we stand now:
+Here's where we stand:
 
-**Ch 00** — ✅ The origin story \
-**Ch 01** — ✅ The world before AWS *(you are here)* \
-**Ch 02** — Welcome to AWS: What It Is and How It's Organised \
-**Ch 03** — Your First AWS Service: EC2 \
-**Ch 04** — Storage in the Cloud: S3 \
-**Ch 05** — Who Can Do What: IAM \
-**Ch 06** — Networking on AWS: VPC 
+**Ch 00** — ✅ The origin story
+
+**Ch 01** — ✅ The world before AWS *(you are here)*
+
+**Ch 02** — Virtualization & Cloud Models: The Missing Bridge
+
+**Ch 03** — Welcome to AWS: Infrastructure, Console & Free Tier
+
+**Ch 04** — IAM: The Gatekeeper of AWS
+
+**Ch 05** — EC2: Your First Server in the Cloud
+
+**Ch 06** — EBS, AMI & Auto Scaling: The Complete Compute Picture
+
+
+**Ch 07** — AWS CLI: Stop Clicking, Start Typing
+
+**Ch 08** — S3: Store Anything, Forever
+
+**Ch 09** — Databases on AWS: RDS & DynamoDB
+
+**Ch 10** — Serverless: Lambda, SNS & SQS
+
+**Ch 11** — Monitoring & Secrets: CloudWatch + Secrets Manager
+
+**Ch 12** — Networking: Route 53, CloudFront & VPC
+
+**Ch 13** — Infrastructure as Code: CloudFormation & Terraform
+
+**Ch 14** — Containers: ECS & EKS
+
+**Ch 15** — Billing & Pricing: Never Get a Surprise Bill
+
+**Ch 16** — Capstone: Build a Full Stack App on AWS
+
+**Ch 17** — AWS vs Azure vs GCP: An Honest Comparison
+
+**Ch 18** — What's Next: The AWS Certifications Roadmap
 
 From the next chapter — it's pure AWS. No more backstory. No more history.
 
@@ -225,13 +256,13 @@ Just the actual services, why they exist, and how to use them.
 
 ### One Thing Before You Click Away.
 
-Chapter 2 is where AWS finally opens up.
+You've just seen why the old world broke.
 
-Not just *what* AWS is — but how it's structured. Why it has regions. Why that matters for your app. And how to find your way around without feeling lost.
+Chapter 2 is the bridge between that broken world and AWS — the technical idea that made cloud computing *physically possible* in the first place.
 
-If Chapter 1 was the problem, Chapter 2 is the map.
+It's called virtualization. And once you understand it, EC2 will make complete sense before you even launch your first instance.
 
-👉 **[Chapter 2: Welcome to AWS → (Read it here)](LINK)**
+👉 **[Chapter 2: Virtualization & Cloud Models → (Read it here)](https://dev.to/)**
 
 ---
 

@@ -72,7 +72,6 @@ This all happens through physical cables, undersea fibre lines, and wireless tow
 
 ![undersea internet cable](2.png)
 
-> 📸 **Image:** Search `"undersea internet cable map world"` — there's a stunning map of actual submarine cables that readers find genuinely surprising. Worth adding here.
 
 The internet isn't magic. It's pipes. Very fast, very global pipes.
 

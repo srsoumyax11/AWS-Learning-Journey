@@ -1,6 +1,6 @@
 # EBS, AMI & Auto Scaling: The Complete Compute Picture 🏗️
 
-> *Chapter 6 of the AWS Learning Journey. Pixel & Spoon is live. But live isn't the same as resilient. Rohit is about to find that out the hard way.*
+> *Chapter 6 of the AWS Learning Journey. Pixel & Spoon is live. But live isn't the same as resilient. Rohit is about to find that out the hard way — and fix it properly.*
 
 ---
 
@@ -75,7 +75,7 @@ With EBS:
 
 🖥️ EC2 Instance
    └── RAM (app runs here)
-   └── 📦 EBS Volume (orders written here)
+   └── 📦 EBS Volume → /data/orders.json
         └── Server restarts → EBS untouched → orders safe ✅
 ```
 
@@ -99,7 +99,7 @@ The founder's Saturday morning message will never happen again.
 
 EBS solves the data problem. But Rohit is thinking ahead.
 
-What if the EC2 instance itself fails?
+What if the EC2 instance itself fails completely?
 
 Not a restart. A complete failure. The instance is gone. He needs to launch a new one.
 
@@ -128,35 +128,101 @@ Remember Chapter 5 — when we launched the EC2 instance and chose Amazon Linux 
 
 You can create your own.
 
-Once Rohit has Pixel & Spoon's server perfectly configured — Node.js installed, app cloned, EBS mounted, security rules set — he takes a snapshot of the entire instance. That snapshot becomes a custom AMI.
+Once Rohit has Pixel & Spoon's server perfectly configured — Node.js installed, app cloned, EBS mounted, security rules set — he takes a snapshot of the entire instance. That snapshot becomes a custom AMI — a **golden image**.
 
 ```
 Current Server (perfectly configured):
 🖥️ EC2: pixel-spoon-backend
    ├── Amazon Linux 2023
    ├── Node.js installed
-   ├── pixel-and-spoon repo cloned
+   ├── pixel-and-spoon repo cloned (ch06-ebs)
    ├── EBS volume mounted
    └── Security groups configured
 
           ↓  Create AMI
 
-📸 AMI: pixel-spoon-golden-image
-   └── An exact copy of everything above, frozen in time
+📸 AMI: pixel-spoon-golden-v1
+   └── Exact copy of the root volume, frozen in time
 
           ↓  Launch from AMI anytime
 
-🖥️ New EC2 instance — identical to original, ready in minutes
+🖥️ New EC2 instance — pre-installed, pre-configured, ready in minutes
 ```
 
-This is called a **golden image**. The perfect server, captured once, reproducible forever.
+---
 
-If the production server fails at 1pm on a Wednesday — Rohit launches a new instance from the AMI. The new server comes up pre-configured, pre-installed, pre-everything. Pixel & Spoon is back online in minutes, not hours.
+### 🤔 But Wait — What About the EBS Data Volume?
 
-![A camera taking a photo of a server (EC2 instance). The photo develops into a polaroid labeled 'Golden Image'. Below, three identical servers are being stamped out from that polaroid like copies. Soft amber accent on the polaroid and the camera flash.](image-1.png)
+This is where it gets important to understand clearly.
 
+When you create an AMI, AWS shows you a **Block Device Mapping** section. You'll see two volumes listed:
 
-> 🛠️ **Hands-on:** Want to create Pixel & Spoon's golden image?
+```
+/dev/xvda  →  Root volume (OS, Node.js, app code)  ← always included
+/dev/xvdf  →  pixel-spoon-data (orders.json)        ← your choice
+```
+
+Should you include `pixel-spoon-data` in the AMI?
+
+**No. Here's why:**
+
+```
+❌ Including the data volume in the AMI means:
+
+   Every new instance launched from this AMI gets a frozen
+   snapshot of orders from the moment the AMI was created.
+   
+   That's stale data. Potentially hours or days old.
+   Not the live orders.json from today.
+
+✅ The correct approach:
+
+   AMI captures the root volume only (OS + app code)
+   pixel-spoon-data EBS volume is managed separately
+   Reattach it to any new instance as needed
+   Always has the latest live data
+```
+
+The AMI is a **template for the server itself**. The data volume is **live state that exists independently**. Keep them separate.
+
+> 🎨 **Illustration prompt:**
+> [Master Prompt] + *"A camera taking a photo of a server. The camera frame clearly includes the server (with Node.js and code icons) but excludes a separate hard drive sitting beside it (outside the frame, slightly blurred, labeled 'live data'). The developed polaroid shows only the server. Soft amber on camera flash. Vibe: intentional framing, clarity about what's captured."*
+> 🔖 Watermark: srsoumyax11 | Ratio: 16:9
+
+---
+
+### ⚠️ The fstab Situation — Be Honest About This
+
+Remember in Ch 6.1, we added an entry to `/etc/fstab` to auto-mount the EBS volume by UUID:
+
+```
+UUID=a1b2c3d4-e5f6-...   /data   ext4   defaults,nofail   0   2
+```
+
+That fstab entry **is captured in the AMI** — it's on the root volume.
+
+Here's what happens when a new instance launches from the AMI:
+
+```
+Scenario A — Same pixel-spoon-data volume reattached:
+   fstab UUID matches → auto mounts ✅ → /data available → app works ✅
+
+Scenario B — No EBS volume attached:
+   fstab UUID not found → nofail → server boots fine ✅
+   but /data doesn't exist → app crashes trying to write orders ❌
+
+Scenario C — New EBS volume attached:
+   Different UUID → fstab doesn't recognise it → /data missing ❌
+   Need to manually mount or update fstab
+```
+
+**The `nofail` option saves the server boot — but not the app.**
+
+This is not a bug. This is the honest limitation of file-based storage in a scaled environment. The proper fix is a database that every instance connects to by hostname — no mounting, no UUIDs, no fstab. That's Chapter 10 (RDS).
+
+For now — the AMI + original EBS volume reattached = recovery in minutes.
+
+> 🛠️ **Hands-on:** Create Pixel & Spoon's golden image with the correct block device mapping:
 > 👉 **[Ch 6.2 — Creating and Using an AMI → (Read it here)](LINK)**
 
 ---
@@ -165,7 +231,7 @@ If the production server fails at 1pm on a Wednesday — Rohit launches a new in
 
 It's Tuesday afternoon. Rohit is about to close his laptop.
 
-His phone buzzes again. This time it's Aarav.
+His phone buzzes. It's Aarav.
 
 > *"Bro — check Twitter. Someone just mentioned Pixel & Spoon."*
 
@@ -175,7 +241,7 @@ A food blogger with 200,000 followers just posted:
 
 > *"Just discovered @PixelandSpoon and honestly? The butter chicken bowl might be life. Everyone go order now 🍛"*
 
-Rohit watches the EC2 CPU monitor in CloudWatch.
+Rohit watches the EC2 CPU monitor.
 
 ```
 2:14pm  →  CPU: 12%   (normal)
@@ -191,7 +257,7 @@ One t3.micro. Thousands of users. The math doesn't work.
 
 Rohit needs more servers. Right now. Not in 20 minutes — **right now**.
 
-And when the traffic dies down at 4pm — he needs those extra servers gone so Pixel & Spoon isn't paying for capacity it doesn't need.
+And when traffic dies down at 4pm — he needs those extra servers gone so Pixel & Spoon isn't paying for capacity it doesn't need.
 
 That's **ELB + Auto Scaling**.
 
@@ -199,7 +265,7 @@ That's **ELB + Auto Scaling**.
 
 ### ⚖️ What Is a Load Balancer?
 
-A **load balancer** sits in front of your servers. Every request that comes in hits the load balancer first. The load balancer then decides which server handles it — distributing the load evenly.
+A **load balancer** sits in front of your servers. Every incoming request hits it first. It decides which server handles it — distributing the load evenly.
 
 ```
 Without ELB:
@@ -208,24 +274,22 @@ Without ELB:
 
 With ELB:
 
-                  ┌→  🖥️ Server 1  (healthy ✅)
-1000 users →  ELB ─→  🖥️ Server 2  (healthy ✅)
-                  └→  🖥️ Server 3  (healthy ✅)
+                   ┌→  🖥️ Server 1  (healthy ✅)
+1000 users  →  ELB ─→  🖥️ Server 2  (healthy ✅)
+                   └→  🖥️ Server 3  (healthy ✅)
 ```
 
-No single server gets overwhelmed. If one server goes down — the load balancer stops sending traffic to it and the others pick up the slack.
+If one server goes down — ELB stops sending it traffic. The others pick up the slack. No human intervention.
 
-Remember the `/health` endpoint we built in Chapter 5?
+Remember the `/health` endpoint built in Chapter 5?
 
 ```json
-GET /health
-{
-  "status": "ok",
-  "service": "pixel-spoon-backend"
-}
+GET /health → { "status": "ok", "service": "pixel-spoon-backend" }
 ```
 
-That wasn't just for show. **ELB pings that endpoint every 30 seconds.** If a server stops returning `"status": "ok"` — ELB marks it unhealthy and stops sending it traffic. Automatically. No human intervention needed.
+**ELB pings that endpoint every 30 seconds.** If a server stops returning `"status": "ok"` — ELB marks it unhealthy and removes it from rotation automatically.
+
+That endpoint wasn't just for show. It was always meant for this moment.
 
 ---
 
@@ -239,54 +303,75 @@ You define the rules:
 
 ```
 Minimum servers:   1   (always at least one running)
-Maximum servers:   6   (never spin up more than six)
+Maximum servers:   6   (never more than six)
 Scale out when:    CPU > 70% for 2 minutes → add 1 server
 Scale in when:     CPU < 30% for 5 minutes → remove 1 server
 ```
 
-When the food blogger posts and CPU hits 89% — ASG detects it, launches a new EC2 instance from Pixel & Spoon's AMI (this is why the golden image matters), and registers it with the load balancer automatically.
-
-When traffic dies down — ASG terminates the extra instances. Pixel & Spoon stops paying for them.
+ASG needs to know what kind of server to launch. That's where the **Launch Template** comes in — a saved configuration that tells ASG exactly what to create: which AMI, which instance type, which key pair, which security group.
 
 ```
-2:14pm  →  1 server running       CPU: 12%
-2:16pm  →  1 server running       CPU: 67%  ← ASG triggers
-2:18pm  →  2 servers running      CPU: 41%  ← load distributed
-2:20pm  →  3 servers running      CPU: 28%  ← stable
-4:00pm  →  traffic drops          CPU: 8%   ← ASG triggers
-4:05pm  →  2 servers running      CPU: 11%
-4:15pm  →  1 server running       CPU: 9%   ← back to baseline
+Launch Template
+   ├── AMI: pixel-spoon-golden-v1    (from Ch 6.2)
+   ├── Instance type: t3.micro
+   ├── Key pair: pixelspoon-key
+   └── Security group: pixel-spoon-backend
 ```
 
-Scale up when you need it. Scale down when you don't. Pay for exactly what you use.
+When the food blogger posts and CPU hits 89% — ASG reads the Launch Template, launches a new EC2 instance from the golden AMI, and registers it with the load balancer. Automatically. In minutes.
 
-This is the elastic part of Elastic Compute Cloud **(EC2)** — finally being used the way it was designed.
+```
+2:14pm  →  1 server    CPU: 12%  (normal)
+2:16pm  →  1 server    CPU: 67%  ← ASG triggers, launches new instance
+2:18pm  →  2 servers   CPU: 41%  ← load distributed
+2:20pm  →  3 servers   CPU: 28%  ← stable
+4:00pm  →  traffic drops  CPU: 8%  ← ASG triggers scale-in
+4:05pm  →  2 servers   CPU: 11%
+4:15pm  →  1 server    CPU: 9%   ← back to baseline
+```
 
-![A horizontal load balancer bar at the top with an arrow pointing down to three servers below it, traffic flowing evenly to each. On the right side, a simple graph showing CPU % going up with servers being added, then coming down as servers are removed.](image-2.png)
+Scale up when needed. Scale down when not. Pay for exactly what you use.
 
+This is the elastic in **Elastic** Compute Cloud — finally used the way it was designed.
 
-> 🛠️ **Hands-on:** Set up a load balancer and auto scaling group for Pixel & Spoon:
-> 👉 **[Ch 6.3 — Setting Up ELB and Auto Scaling → (Read it here)](LINK)**
+> 🎨 **Illustration prompt:**
+> [Master Prompt] + *"A horizontal load balancer bar at top, arrows flowing down to three servers below it evenly. Right side: a simple line graph showing CPU % rising with servers being added (arrows up), then dropping as servers are removed (arrows down). Soft orange on the load balancer bar. Vibe: balance, automatic response, elasticity."*
+> 🔖 Watermark: srsoumyax11 | Ratio: 16:9
 
-### ⚠️ **The shared storage problem**
+---
 
-> Sharp readers will notice something: if ASG spins up three 
-> EC2 instances, each one needs access to the same orders.
-> But EBS volumes can only attach to one instance at a time.
+### ⚠️ The Shared Storage Problem
 
-> Instance 1 has the orders. Instance 2 and 3 don't.
-> A user routed to Instance 2 sees an empty order history.
->
-> This is a real limitation — and it's exactly why file-based
-> storage on EBS doesn't scale horizontally.
->
-> The real fix is a **shared database** that all instances
-> connect to independently. That's Chapter 10 — RDS.
-> Every instance queries the same database. Problem solved.
->
-> For now, Pixel & Spoon runs on a single instance with EBS.
-> The load balancer and ASG are ready — we just need a proper
-> database before we can use them fully.
+Sharp readers will notice something here.
+
+If ASG launches three EC2 instances — each one needs the same orders. But EBS volumes attach to **one instance at a time**.
+
+```
+❌ What this means in practice:
+
+User A → ELB → Instance 1 → EBS (has all orders) ✅
+User B → ELB → Instance 2 → no EBS attached ❌
+User C → ELB → Instance 3 → no EBS attached ❌
+
+Instance 2 and 3 can't write or read orders at all.
+```
+
+This is a real architectural limitation. File-based storage on EBS doesn't scale horizontally. It was never designed to.
+
+The fix isn't clever mounting tricks. The fix is a **shared database** — one RDS instance that all EC2 instances connect to by hostname. No mounting. No UUIDs. No fstab. Every instance queries the same data, always in sync.
+
+```
+✅ What Chapter 10 (RDS) fixes:
+
+User A → ELB → Instance 1 ─┐
+User B → ELB → Instance 2 ─┼→ RDS Database → same orders ✅
+User C → ELB → Instance 3 ─┘
+```
+
+For now, Pixel & Spoon runs on a **single instance**. The load balancer, ASG, and Launch Template are fully configured and ready. We just need a real database before horizontal scaling works end to end.
+
+> 🛠️ **Hands-on:** Set up the Launch Template, ELB, and Auto Scaling Group:
+> 👉 **[Ch 6.3 — Launch Template, ELB & Auto Scaling → (Read it here)](LINK)**
 
 ---
 
@@ -295,31 +380,33 @@ This is the elastic part of Elastic Compute Cloud **(EC2)** — finally being us
 Step back and look at what Rohit built today.
 
 ```
-📦 EBS Volume
+📦 EBS Volume (pixel-spoon-data)
    └── Orders survive server restarts
-   └── Data exists independently of any instance
+   └── Managed separately from the AMI
+   └── Reattached to any replacement instance
 
-📸 AMI (Golden Image)
-   └── Perfect server captured once
-   └── New servers launch pre-configured in minutes
-   └── ASG uses this to create new instances automatically
+📸 AMI (pixel-spoon-golden-v1)
+   └── Root volume only — OS, Node.js, app code
+   └── fstab captured — data volume auto-mounts if reattached
+   └── Launch Template uses this to stamp out new servers
+
+🚀 Launch Template
+   └── Tells ASG exactly what to launch
+   └── AMI + instance type + key pair + security group
 
 ⚖️ ELB + Auto Scaling Group
-   └── Traffic distributed across multiple instances
-   └── Unhealthy instances removed automatically (/health endpoint)
-   └── New instances launched from AMI when CPU spikes
-   └── Extra instances terminated when traffic drops
+   └── ELB distributes traffic, uses /health for checks
+   └── ASG scales out on CPU spike using Launch Template
+   └── ASG scales in when traffic drops
+   └── Ready for RDS — shared storage solves sync problem
 ```
 
-These three aren't separate features. They're one system.
+EBS gives data persistence.
+AMI makes servers reproducible.
+Launch Template makes ASG possible.
+ELB + ASG makes the whole thing elastic.
 
-EBS gives data persistence. AMI makes servers reproducible. ELB + ASG makes the whole thing elastic.
-
-Without EBS — restarting any server loses data.
-Without AMI — Auto Scaling can't launch pre-configured servers fast enough.
-Without ELB + ASG — one server is still a single point of failure.
-
-Together — Pixel & Spoon can handle a food blogger with 200,000 followers and not even break a sweat.
+Without any one piece — the others don't work properly.
 
 ---
 
@@ -327,7 +414,7 @@ Together — Pixel & Spoon can handle a food blogger with 200,000 followers and 
 
 It's 11pm. Rohit closes his laptop.
 
-The load balancer is routing traffic. The auto scaling group is watching CPU. The EBS volume is safely holding every order. The golden AMI is sitting ready to stamp out new servers at a moment's notice.
+The load balancer is routing. The auto scaling group is watching CPU. The EBS volume holds every order. The golden AMI is ready to stamp out new servers at a moment's notice. The Launch Template ensures every new server is identical to the last.
 
 He sets his phone to Do Not Disturb.
 
@@ -335,12 +422,9 @@ For the first time since Pixel & Spoon launched — he's not worried about what 
 
 That's what resilient infrastructure feels like.
 
-![alt text](mermaid-diagram.png)
-
 ---
 
 ## 🗺️ Where We Go From Here
-
 
 **Ch 00** — ✅ The origin story
 
@@ -368,9 +452,9 @@ That's what resilient infrastructure feels like.
 
 **Ch 06.1** — Attaching and Using an EBS Volume
 
-**Ch 06.2** — Creating and Using an AMI
+**Ch 06.2** — Creating and Using an AMI (Golden Image)
 
-**Ch 06.3** — Setting Up ELB and Auto Scaling
+**Ch 06.3** — Launch Template, ELB & Auto Scaling
 
 **Ch 07** — AWS CLI: Stop Clicking, Start Typing
 
@@ -424,7 +508,7 @@ But Rohit has been doing everything through the AWS console — clicking, scroll
 
 There's a faster way.
 
-In Chapter 7, Aarav shows Rohit something that changes how they both work — the AWS CLI. Everything they've done in the last three chapters, done in a single line from the terminal. The first step toward real automation.
+In Chapter 7, Aarav shows Rohit something that changes how they both work — the AWS CLI. Everything done in the last three chapters, now done in a single line from the terminal. The first step toward real automation.
 
 👉 **[Chapter 7: AWS CLI — Stop Clicking, Start Typing → (Read it here)](LINK)**
 
@@ -437,3 +521,5 @@ In Chapter 7, Aarav shows Rohit something that changes how they both work — th
 ---
 
 *#aws #cloud #ec2 #devops*
+ENDOFFILE
+echo "Done"
